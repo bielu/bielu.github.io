@@ -1,0 +1,91 @@
+---
+import { ecosystemFamilyUrl, formatCount, pluralize, type ProjectStats } from '../lib/showcase';
+import ProjectArt from './ProjectArt.astro';
+
+interface Props {
+  stats: ProjectStats;
+  /** Smaller tile without links, used for the parts of the flagship. */
+  compact?: boolean;
+}
+
+const { stats, compact = false } = Astro.props;
+const { project, packages, totalDownloads, lead, art } = stats;
+const inEcosystem = packages.length > 0;
+---
+
+<article class:list={['tile', { compact }]} id={project.slug} style={`--hue:${project.hue}`}>
+  <div class="head">
+    <ProjectArt art={art} hue={project.hue} size={compact ? 44 : 56} />
+    <div class="intro">
+      <span class="tag">{project.tag}</span>
+      <h3>
+        {
+          compact && inEcosystem ? (
+            <a href={ecosystemFamilyUrl(project.slug)}>{project.name}</a>
+          ) : (
+            project.name
+          )
+        }
+      </h3>
+    </div>
+  </div>
+
+  <p class="summary">{project.summary}</p>
+
+  {
+    inEcosystem && (
+      <p class="meta mono">
+        <span>{pluralize(packages.length, 'package')} · {formatCount(totalDownloads)} downloads</span>
+        {!compact && lead?.stableVersion && <span>v{lead.stableVersion}</span>}
+        {!compact && lead && !lead.stableVersion && <span class="badge accent">preview</span>}
+      </p>
+    )
+  }
+
+  {
+    !compact && (
+      <div class="links-row">
+        {inEcosystem && <a class="eco" href={ecosystemFamilyUrl(project.slug)}>Packages →</a>}
+        {project.docs && <a href={project.docs}>Docs →</a>}
+        {project.repo && <a href={project.repo}>Source →</a>}
+      </div>
+    )
+  }
+</article>
+
+<style>
+  .tile {
+    display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--hue) 85% 60% / .10), transparent 60%),
+      var(--bg-elev);
+    box-shadow: var(--shadow);
+    transition: border-color .15s, transform .15s;
+  }
+  .tile:hover { border-color: hsl(var(--hue) 70% 60% / .55); transform: translateY(-2px); }
+  .compact { padding: 16px; gap: 10px; border-radius: 14px; box-shadow: none; }
+
+  .head { display: flex; align-items: center; gap: 14px; }
+  .intro { min-width: 0; }
+  .tag {
+    display: block;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  h3 { margin: 2px 0 0; font-size: 1.08rem; font-weight: 660; letter-spacing: -.01em; line-height: 1.25; }
+  .compact h3 { font-size: 1rem; }
+  h3 a { text-decoration: none; }
+  h3 a:hover { color: var(--accent); }
+
+  .summary { margin: 0; color: var(--fg-muted); font-size: 14.5px; line-height: 1.55; }
+  .compact .summary { font-size: 13.5px; }
+  .meta { margin: auto 0 0; font-size: 12px; color: var(--fg-faint); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+
+  .links-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13.5px; }
+  .links-row a { color: var(--fg-muted); text-decoration: none; font-weight: 500; }
+  .links-row a:hover, .links-row a.eco { color: var(--accent); }
+</style>
