@@ -1,21 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { ILLUSTRATIONS } from '../src/lib/illustrations';
 import { PROJECT_ICONS } from '../src/lib/project-icons';
-import { CONTRIBUTIONS, PROJECTS } from '../src/lib/projects';
+import { CONTRIBUTIONS, FEATURED, PROJECTS } from '../src/lib/projects';
 import {
   artFor,
   buildShowcase,
   ecosystemFamilyUrl,
   ecosystemPackageUrl,
+  featureLinks,
   formatCount,
   formatHeadline,
   githubUrl,
   installCommand,
+  installPackage,
   pluralize,
   projectFor,
   recommendedVersion,
 } from '../src/lib/showcase';
-import { makePackage, projects } from './fixtures';
+import { features, makePackage, projects } from './fixtures';
 
 describe('projectFor', () => {
   it('projectFor_MatchesPrefixCaseInsensitively', () => {
@@ -43,6 +45,15 @@ describe('projectFor', () => {
     expect(projectFor('Bielu.Arazzo.NET.Readers')?.slug).toBe('arazzo');
     expect(projectFor('Bielu.PersistentQueues.Storage.LMDB')?.slug).toBe('persistent-queues');
   });
+
+  it('projectFor_DefaultProjectsClaimBetterSearchPackages', () => {
+    expect(projectFor('Bielu.BetterSearch.Core')).toMatchObject({ slug: 'bettersearch', feature: 'bettersearch' });
+    expect(projectFor('Bielu.BetterSearch.FluentApi')?.slug).toBe('bettersearch');
+    expect(projectFor('Bielu.BetterSearch.ElasticSearch')?.slug).toBe('bettersearch-elasticsearch');
+    expect(projectFor('Bielu.BetterSearch.OpenSearch')?.slug).toBe('bettersearch-opensearch');
+    expect(projectFor('Bielu.BetterSearch.Meilisearch')?.slug).toBe('bettersearch-meilisearch');
+    expect(projectFor('Bielu.BetterSearch.Lifti')?.slug).toBe('bettersearch-lifti');
+  });
 });
 
 describe('PROJECTS', () => {
@@ -61,6 +72,14 @@ describe('PROJECTS', () => {
   it('PROJECTS_StartWithTheFlagshipCore', () => {
     // The page treats the first flagship project as the flagship's lead.
     expect(PROJECTS[0]).toMatchObject({ slug: 'asyncapi', group: 'flagship' });
+  });
+
+  it('PROJECTS_OnlyFeaturedPartsNameAnExistingFeature', () => {
+    const slugs = FEATURED.map((f) => f.slug);
+    for (const project of PROJECTS) {
+      if (project.group === 'featured') expect(slugs).toContain(project.feature);
+      else expect(project.feature).toBeUndefined();
+    }
   });
 
   it('CONTRIBUTIONS_UseOwnerSlashNameRepos', () => {
@@ -134,6 +153,80 @@ describe('buildShowcase', () => {
     expect(showcase.flagshipPackageCount).toBe(3);
     expect(showcase.flagshipDownloads).toBe(450);
     expect(showcase.top.map((p) => p.id)).toEqual(['Other.Thing', 'Acme.Core.Extras', 'Acme.Core']);
+  });
+
+  it('buildShowcase_GroupsFeaturedPartsUnderTheirFeature', () => {
+    // Arrange
+    const withSearch = [
+      ...packages,
+      makePackage({ id: 'Acme.Search.Core', totalDownloads: 70 }),
+      makePackage({ id: 'Acme.Search.Models', totalDownloads: 5 }),
+      makePackage({ id: 'Acme.Search.Elastic', totalDownloads: 30 }),
+    ];
+
+    // Act
+    const showcase = buildShowcase(withSearch, projects, 6, features);
+
+    // Assert
+    expect(showcase.featured).toHaveLength(1);
+    const [search] = showcase.featured;
+    expect(search!.feature.slug).toBe('search');
+    expect(search!.parts.map((s) => s.project.slug)).toEqual(['search', 'search-elastic']);
+    expect(search!.parts[0]!.packages.map((p) => p.id)).toEqual(['Acme.Search.Core', 'Acme.Search.Models']);
+    expect(search!.packageCount).toBe(3);
+    expect(search!.totalDownloads).toBe(105);
+  });
+
+  it('buildShowcase_KeepsFeaturedOutOfFlagshipTotals', () => {
+    // Act
+    const showcase = buildShowcase([...packages, makePackage({ id: 'Acme.Search.Core', totalDownloads: 70 })], projects, 6, features);
+
+    // Assert
+    expect(showcase.flagshipPackageCount).toBe(3);
+    expect(showcase.flagshipDownloads).toBe(450);
+  });
+
+  it('buildShowcase_DropsFeaturesWithoutParts', () => {
+    // Act
+    const showcase = buildShowcase(packages, projects, 6, features);
+
+    // Assert
+    expect(showcase.featured.map((f) => f.feature.slug)).toEqual(['search']);
+  });
+});
+
+describe('feature cards', () => {
+  const [coreProject, elasticProject] = projects.filter((p) => p.feature === 'search');
+  const core = makePackage({ id: 'Acme.Search.Core', totalDownloads: 10 });
+  const models = makePackage({ id: 'Acme.Search.Models', totalDownloads: 90 });
+  const elastic = makePackage({ id: 'Acme.Search.Elastic', totalDownloads: 40 });
+  const parts = [
+    { project: coreProject!, packages: [models, core], totalDownloads: 100, lead: models, art: artFor(coreProject!, []) },
+    { project: elasticProject!, packages: [elastic], totalDownloads: 40, lead: elastic, art: artFor(elasticProject!, []) },
+  ];
+
+  it('installPackage_FindsTheIdInAnyPartCaseInsensitively', () => {
+    // Act / Assert
+    expect(installPackage(parts, 'acme.search.core')?.id).toBe('Acme.Search.Core');
+    expect(installPackage(parts, 'ACME.SEARCH.ELASTIC')?.id).toBe('Acme.Search.Elastic');
+  });
+
+  it('installPackage_FallsBackToTheFirstPartsLead', () => {
+    // Act / Assert
+    expect(installPackage(parts, 'Acme.Search.Missing')?.id).toBe('Acme.Search.Models');
+    expect(installPackage([], 'Acme.Search.Core')).toBeUndefined();
+  });
+
+  it('featureLinks_ListsDocsSourceAndPackages', () => {
+    // Act
+    const links = featureLinks(features[0]!, 3);
+
+    // Assert
+    expect(links).toEqual([
+      { label: 'Documentation', href: 'https://search.acme.test/' },
+      { label: 'Source', href: 'https://github.com/acme/search' },
+      { label: 'All 3 packages', href: 'https://packages.bielu.pl/#search' },
+    ]);
   });
 });
 

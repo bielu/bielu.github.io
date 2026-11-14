@@ -18,7 +18,8 @@ Built with [Astro](https://astro.build) and served by GitHub Pages behind Cloudf
   data URI. The email comes from the `GRAVATAR_EMAIL` secret and never appears in the repo or on the page,
   not even as a Gravatar hash. Without it the hero shows initials.
 - **Page.** `/` shows the hero with live totals, the flagship (API descriptions) with an install snippet
-  and its parts, infrastructure and library projects, the most downloaded packages, a link to the
+  and its parts, featured projects (currently Bielu.BetterSearch) on cards of their own, infrastructure
+  and library projects, the most downloaded packages, a link to the
   ecosystem, upstream contributions and older work.
 
 ## Development

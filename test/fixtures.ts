@@ -1,5 +1,5 @@
 import type { Package } from '../src/lib/nuget';
-import type { Project } from '../src/lib/projects';
+import type { Feature, Project } from '../src/lib/projects';
 
 export function makePackage(overrides: Partial<Package> & { id: string }): Package {
   return {
@@ -38,4 +38,27 @@ export const projects: Project[] = [
     hue: 30,
   },
   { slug: 'tools', name: 'Tools', group: 'libraries', tag: 'Tools', summary: 'Tools.', prefixes: ['Acme.Tools'], hue: 40 },
+  { slug: 'search', name: 'Search', group: 'featured', feature: 'search', tag: 'Core', summary: 'Core.', prefixes: ['Acme.Search'], hue: 50 },
+  {
+    slug: 'search-elastic',
+    name: 'Elastic',
+    group: 'featured',
+    feature: 'search',
+    tag: 'Provider',
+    summary: 'Elastic.',
+    prefixes: ['Acme.Search.Elastic'],
+    hue: 60,
+  },
+];
+
+export const features: Feature[] = [
+  {
+    slug: 'search',
+    name: 'Acme.Search',
+    summary: 'Search.',
+    install: 'Acme.Search.Core',
+    repo: 'https://github.com/acme/search',
+    docs: 'https://search.acme.test/',
+  },
+  { slug: 'empty', name: 'Empty', summary: 'No parts.', install: 'Acme.Empty', repo: 'https://r.test', docs: 'https://d.test' },
 ];

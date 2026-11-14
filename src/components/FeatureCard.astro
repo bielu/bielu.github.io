@@ -1,0 +1,108 @@
+---
+import type { Package } from '../lib/nuget';
+import { formatCount, installCommand, pluralize, type ProjectArt as Art } from '../lib/showcase';
+import ProjectArt from './ProjectArt.astro';
+
+interface Props {
+  name: string;
+  href: string;
+  summary: string;
+  art: Art;
+  hue: number;
+  packageCount: number;
+  downloads: number;
+  /** Package shown in the install snippet; its version is shown next to the totals. */
+  install?: Package;
+  links: { label: string; href: string }[];
+}
+
+const { name, href, summary, art, hue, packageCount, downloads, install, links } = Astro.props;
+const command = install && installCommand(install);
+---
+
+<article class="feature" style={`--hue:${hue}`}>
+  <div class="feature-head">
+    <ProjectArt art={art} hue={hue} size={72} />
+    <div>
+      <h3><a href={href}>{name}</a></h3>
+      <p class="meta mono">
+        {pluralize(packageCount, 'package')} · {formatCount(downloads)} downloads
+        {install?.stableVersion ? <> · v{install.stableVersion}</> : install && <span class="badge accent">preview</span>}
+      </p>
+    </div>
+  </div>
+  <p class="feature-summary">{summary}</p>
+
+  {
+    command && (
+      <div class="install">
+        <pre class="mono"><code>{command}</code></pre>
+        <button type="button" class="copy" data-copy={command}>Copy</button>
+      </div>
+    )
+  }
+
+  <slot />
+
+  <div class="links">
+    {links.map((link) => <a href={link.href}>{link.label} →</a>)}
+  </div>
+</article>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy!);
+        button.textContent = 'Copied';
+      } catch {
+        button.textContent = 'Press Ctrl+C';
+      }
+      setTimeout(() => (button.textContent = 'Copy'), 1600);
+    });
+  }
+</script>
+
+<style>
+  .feature {
+    display: flex; flex-direction: column; gap: 20px;
+    padding: 26px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background:
+      radial-gradient(90% 70% at 0% 0%, hsl(var(--hue) 85% 60% / .10), transparent 60%),
+      var(--bg-elev);
+    box-shadow: var(--shadow);
+  }
+  .feature-head { display: flex; align-items: center; gap: 18px; min-width: 0; }
+  .feature-head > div { min-width: 0; }
+  h3 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 660; letter-spacing: -.014em; overflow-wrap: anywhere; }
+  h3 a { color: var(--accent); text-decoration: none; }
+  h3 a:hover { text-decoration: underline; }
+  .meta { margin: 0; font-size: 12px; color: var(--fg-faint); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .feature-summary { margin: 0; color: var(--fg-muted); font-size: 15.5px; max-width: 66ch; }
+
+  .install {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    padding: 4px 4px 4px 14px;
+    min-width: 0;
+  }
+  .install pre { margin: 0; flex: 1; min-width: 0; overflow-x: auto; padding: 8px 0; }
+  .copy {
+    flex: none;
+    font: inherit; font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 0;
+    border-radius: 7px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 620px) {
+    .feature { padding: 18px; }
+  }
+</style>

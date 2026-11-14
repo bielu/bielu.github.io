@@ -20,7 +20,7 @@ This repo owns the design tokens that packages.bielu.pl mirrors; both repos shar
 | `src/lib/showcase.ts` | Pure logic: matching packages to projects, totals, formatting, install commands, URLs |
 | `src/lib/gravatar.ts` | Build-time Gravatar download, inlined as a data URI |
 | `src/lib/data.ts` | Memoised build-time showcase and avatar |
-| `src/components/` | `ProjectTile` (one project tile) and `ProjectArt` (icon / illustration / NuGet image) |
+| `src/components/` | `FeatureCard` (flagship and featured cards), `ProjectTile` (one project tile) and `ProjectArt` (icon / illustration / NuGet image) |
 | `src/pages/index.astro` | The landing page |
 | `src/styles/global.css` | Design tokens and base styles |
 | `test/` | Vitest unit tests for `src/lib` |
@@ -34,6 +34,9 @@ This repo owns the design tokens that packages.bielu.pl mirrors; both repos shar
 - **Showcasing a project:** add it to `PROJECTS` in `projects.ts`. Reuse the packages.bielu.pl family slug
   so its links land on the right family. The longest matching prefix wins, so declaration order is only
   display order. Keep slugs unique, which a test enforces.
+- **Featured cards:** a project made of parts gets its own card after the flagship, like the flagship's.
+  Add a `Feature` to `FEATURED` (name, summary, install package, links), then one `featured` project per
+  part with `feature` set to its slug. The first part supplies the card's art and colour.
 - **Never publish the Gravatar email or its hash.** It is a short, guessable address, so its hash is as
   good as the address. Read it only from `GRAVATAR_EMAIL` at build time and keep the avatar inlined;
   don't link to gravatar.com or commit the address anywhere.

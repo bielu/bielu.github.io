@@ -1,5 +1,5 @@
 ---
-import ProjectArt from '../components/ProjectArt.astro';
+import FeatureCard from '../components/FeatureCard.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import Base from '../layouts/Base.astro';
 import { getAvatar, getShowcase } from '../lib/data';
@@ -10,22 +10,21 @@ import {
   ecosystemPackageUrl,
   formatCount,
   formatHeadline,
+  featureLinks,
   githubUrl,
-  installCommand,
-  pluralize,
+  installPackage,
 } from '../lib/showcase';
 
 const NAME = 'Arkadiusz Biel';
 const [showcase, avatar] = await Promise.all([getShowcase(), getAvatar()]);
-const { flagship, top, packageCount, totalDownloads, flagshipPackageCount, flagshipDownloads } = showcase;
+const { flagship, featured, top, packageCount, totalDownloads, flagshipPackageCount, flagshipDownloads } = showcase;
 const core = flagship[0]!;
-const install = core.packages.find((p) => p.id.toLowerCase() === FLAGSHIP.install.toLowerCase()) ?? core.lead;
 const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, ...GROUPS[key], projects: showcase[key] }));
 ---
 
 <Base
   title="Arkadiusz Biel — .NET open-source infrastructure"
-  description="Arkadiusz Biel — .NET developer building open-source infrastructure libraries: AsyncAPI & Arazzo tooling, persistent queues, and .NET Aspire extensions."
+  description="Arkadiusz Biel — .NET developer building open-source infrastructure libraries: AsyncAPI & Arazzo tooling, provider-agnostic search, persistent queues, and .NET Aspire extensions."
 >
   <header class="hero">
     <span class="eyebrow">.NET · Open Source</span>
@@ -34,7 +33,7 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
         <h1>{NAME}</h1>
         <p class="lede">
           I build open-source .NET infrastructure: the parts of a system that live <em>between</em> services.
-          Currently <strong>AsyncAPI &amp; Arazzo tooling</strong>, <strong>persistent queues</strong> and <strong>.NET Aspire</strong> extensions.
+          Currently <strong>AsyncAPI &amp; Arazzo tooling</strong>, <strong>provider-agnostic search</strong>, <strong>persistent queues</strong> and <strong>.NET Aspire</strong> extensions.
         </p>
       </div>
       {
@@ -80,39 +79,48 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
     <h2>Flagship</h2>
     <p class="sub">The bulk of my current work: bringing the OpenAPI developer experience to the specs that describe everything else.</p>
 
-    <article class="flagship">
-      <div class="flag-head">
-        <ProjectArt art={core.art} hue={core.project.hue} size={72} />
-        <div>
-          <h3><a href={FLAGSHIP.docs}>{FLAGSHIP.name}</a></h3>
-          <p class="meta mono">
-            {pluralize(flagshipPackageCount, 'package')} · {formatCount(flagshipDownloads)} downloads
-            {install?.stableVersion && <> · v{install.stableVersion}</>}
-          </p>
-        </div>
-      </div>
-      <p class="flag-summary">{FLAGSHIP.summary}</p>
-
-      {
-        install && (
-          <div class="install">
-            <pre class="mono"><code>{installCommand(install)}</code></pre>
-            <button type="button" class="copy" data-copy={installCommand(install)}>Copy</button>
-          </div>
-        )
-      }
-
+    <FeatureCard
+      name={FLAGSHIP.name}
+      href={FLAGSHIP.docs}
+      summary={FLAGSHIP.summary}
+      art={core.art}
+      hue={core.project.hue}
+      packageCount={flagshipPackageCount}
+      downloads={flagshipDownloads}
+      install={installPackage(flagship, FLAGSHIP.install)}
+      links={featureLinks(FLAGSHIP, flagshipPackageCount)}
+    >
       <div class="parts">
         {flagship.map((stats) => <ProjectTile stats={stats} compact />)}
       </div>
-
-      <div class="links">
-        <a href={FLAGSHIP.docs}>Documentation →</a>
-        <a href={FLAGSHIP.repo}>Source →</a>
-        <a href={`${ECOSYSTEM_URL}/#asyncapi`}>All {flagshipPackageCount} packages →</a>
-      </div>
-    </article>
+    </FeatureCard>
   </section>
+
+  {
+    featured.length > 0 && (
+      <section>
+        <h2>Search</h2>
+        <p class="sub">My newest project, in beta: one query model for every search engine, so switching engines is a configuration change.</p>
+        {featured.map(({ feature, parts, packageCount, totalDownloads }) => (
+          <FeatureCard
+            name={feature.name}
+            href={feature.docs}
+            summary={feature.summary}
+            art={parts[0]!.art}
+            hue={parts[0]!.project.hue}
+            packageCount={packageCount}
+            downloads={totalDownloads}
+            install={installPackage(parts, feature.install)}
+            links={featureLinks(feature, packageCount)}
+          >
+            <div class="parts">
+              {parts.map((stats) => <ProjectTile stats={stats} compact />)}
+            </div>
+          </FeatureCard>
+        ))}
+      </section>
+    )
+  }
 
   {
     groups.map((g) => (
@@ -181,20 +189,6 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
   </section>
 </Base>
 
-<script>
-  for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
-    button.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(button.dataset.copy!);
-        button.textContent = 'Copied';
-      } catch {
-        button.textContent = 'Press Ctrl+C';
-      }
-      setTimeout(() => (button.textContent = 'Copy'), 1600);
-    });
-  }
-</script>
-
 <style>
   .hero { padding: 88px 0 56px; }
   .hero-top { display: flex; align-items: center; gap: 40px; }
@@ -215,44 +209,6 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
   .cta a.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
   .cta a.primary:hover { color: var(--bg); filter: brightness(1.08); }
   .sub a { color: var(--accent); }
-
-  .flagship {
-    display: flex; flex-direction: column; gap: 20px;
-    padding: 26px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background:
-      radial-gradient(90% 70% at 0% 0%, hsl(255 85% 60% / .10), transparent 60%),
-      var(--bg-elev);
-    box-shadow: var(--shadow);
-  }
-  .flag-head { display: flex; align-items: center; gap: 18px; min-width: 0; }
-  .flag-head > div { min-width: 0; }
-  .flagship h3 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 660; letter-spacing: -.014em; overflow-wrap: anywhere; }
-  .flagship h3 a { color: var(--accent); text-decoration: none; }
-  .flagship h3 a:hover { text-decoration: underline; }
-  .meta { margin: 0; font-size: 12px; color: var(--fg-faint); }
-  .flag-summary { margin: 0; color: var(--fg-muted); font-size: 15.5px; max-width: 66ch; }
-
-  .install {
-    display: flex; align-items: center; gap: 10px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg);
-    padding: 4px 4px 4px 14px;
-    min-width: 0;
-  }
-  .install pre { margin: 0; flex: 1; min-width: 0; overflow-x: auto; padding: 8px 0; }
-  .copy {
-    flex: none;
-    font: inherit; font-size: 13px; font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 0;
-    border-radius: 7px;
-    padding: 7px 12px;
-    cursor: pointer;
-  }
 
   .parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; }
@@ -293,7 +249,6 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
     .hero-top { flex-direction: column-reverse; align-items: flex-start; gap: 20px; }
     .avatar { width: 96px; height: 96px; }
     .initials { font-size: 2rem; }
-    .flagship { padding: 18px; }
     .row { grid-template-columns: 1fr; gap: 6px; }
     .ecosystem { padding: 20px; }
   }

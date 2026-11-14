@@ -13,7 +13,8 @@
 import type { IllustrationName } from './illustrations';
 import type { ProjectIconName } from './project-icons';
 
-export type ProjectGroup = 'flagship' | 'infrastructure' | 'libraries';
+/** `featured` projects are the parts of a {@link FEATURED} card, shown right after the flagship. */
+export type ProjectGroup = 'flagship' | 'featured' | 'infrastructure' | 'libraries';
 
 export interface Project {
   /** Family slug on packages.bielu.pl, used as the anchor of its ecosystem link. */
@@ -26,6 +27,8 @@ export interface Project {
   prefixes: string[];
   repo?: string;
   docs?: string;
+  /** Slug of the {@link Feature} whose card shows this project as a part. Required for the `featured` group. */
+  feature?: string;
   /** Hand-drawn icon; takes precedence over {@link illustration}. */
   icon?: ProjectIconName;
   /** Tile artwork. When omitted the top package's NuGet icon is used, then a generic illustration. */
@@ -34,8 +37,21 @@ export interface Project {
   hue: number;
 }
 
+/** A project shown as one card made of parts: an umbrella over several {@link Project}s. */
+export interface Feature {
+  /** Family slug on packages.bielu.pl the card's package link points at. */
+  slug: string;
+  name: string;
+  summary: string;
+  /** Package id for the install snippet. Falls back to the first part's most downloaded package. */
+  install: string;
+  repo: string;
+  docs: string;
+}
+
 /** The flagship as a whole: the parts are the `flagship` projects below. */
-export const FLAGSHIP = {
+export const FLAGSHIP: Feature = {
+  slug: 'asyncapi',
   name: 'Bielu.AspNetCore.ApiDescriptions',
   summary:
     'Code-first AsyncAPI, Arazzo and Overlay document generation for ASP.NET Core, from minimal or controller-based APIs. The experience Microsoft.AspNetCore.OpenApi gives you for REST, applied to event-driven and workflow specifications.',
@@ -45,6 +61,21 @@ export const FLAGSHIP = {
 };
 
 const API_DESCRIPTIONS = { repo: FLAGSHIP.repo, docs: FLAGSHIP.docs };
+
+/** Cards shown after the flagship, in this order. Their parts are the `featured` projects naming them. */
+export const FEATURED: Feature[] = [
+  {
+    slug: 'bettersearch',
+    name: 'Bielu.BetterSearch',
+    summary:
+      'A provider-agnostic search abstraction for .NET: describe a query once, then run it against whichever engine you configure. Elasticsearch, OpenSearch, Meilisearch and an in-memory provider ship today; a new engine is a new provider package, with no change to the core.',
+    install: 'Bielu.BetterSearch.Core',
+    repo: 'https://github.com/bielu/bielu.bettersearch',
+    docs: 'https://search.bielu.pl/',
+  },
+];
+
+const BETTER_SEARCH = { feature: 'bettersearch', group: 'featured', repo: FEATURED[0]!.repo, docs: FEATURED[0]!.docs } as const;
 
 export const PROJECTS: Project[] = [
   // ---- Flagship: API descriptions ----------------------------------------------------------
@@ -119,6 +150,67 @@ export const PROJECTS: Project[] = [
     icon: 'api-tooling',
     hue: 220,
     ...API_DESCRIPTIONS,
+  },
+
+  // ---- Featured: Better Search -------------------------------------------------------------
+  {
+    slug: 'bettersearch',
+    name: 'Query model',
+    tag: 'Core',
+    summary: 'One query model with Lucene semantics, a fluent builder, and errors returned as results.',
+    prefixes: ['Bielu.BetterSearch.'],
+    hue: 175,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-elasticsearch',
+    name: 'Elasticsearch',
+    tag: 'Provider',
+    summary: 'Paging, sorting, post filters, highlighting and scores.',
+    prefixes: ['Bielu.BetterSearch.ElasticSearch'],
+    illustration: 'search',
+    hue: 195,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-opensearch',
+    name: 'OpenSearch',
+    tag: 'Provider',
+    summary: 'Paging, sorting, post filters, highlighting and scores, with basic or API-key auth.',
+    prefixes: ['Bielu.BetterSearch.OpenSearch'],
+    illustration: 'globe',
+    hue: 215,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-meilisearch',
+    name: 'Meilisearch',
+    tag: 'Provider',
+    summary: 'Paging, sorting and post filters, translating raw Lucene queries into filters where it can.',
+    prefixes: ['Bielu.BetterSearch.Meilisearch'],
+    illustration: 'spark',
+    hue: 330,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-lifti',
+    name: 'In memory',
+    tag: 'Provider',
+    summary: 'An in-process index on LIFTI, with no server to run.',
+    prefixes: ['Bielu.BetterSearch.Lifti'],
+    illustration: 'layers',
+    hue: 45,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-lucene',
+    name: 'Lucene.NET',
+    tag: 'Planned',
+    summary: 'In memory or on disk, replacing the LIFTI provider on the way to 1.0.',
+    prefixes: ['Bielu.BetterSearch.Lucene'],
+    illustration: 'book',
+    hue: 120,
+    ...BETTER_SEARCH,
   },
 
   // ---- Messaging & infrastructure ----------------------------------------------------------
@@ -213,7 +305,7 @@ export const PROJECTS: Project[] = [
   },
 ];
 
-export const GROUPS: Record<Exclude<ProjectGroup, 'flagship'>, { title: string; sub: string }> = {
+export const GROUPS: Record<Exclude<ProjectGroup, 'flagship' | 'featured'>, { title: string; sub: string }> = {
   infrastructure: {
     title: 'Messaging & infrastructure',
     sub: 'Durable delivery, orchestration and secrets: the plumbing under distributed .NET systems.',

@@ -1,7 +1,7 @@
 import type { IllustrationName } from './illustrations';
 import type { Package } from './nuget';
 import type { ProjectIconName } from './project-icons';
-import { PROJECTS, type Project } from './projects';
+import { FEATURED, PROJECTS, type Feature, type Project } from './projects';
 
 /** The bielu NuGet ecosystem catalogue (repo bielu/Bielu.EcoSystem). */
 export const ECOSYSTEM_URL = 'https://packages.bielu.pl';
@@ -22,8 +22,18 @@ export interface ProjectStats {
   art: ProjectArt;
 }
 
+/** A featured card: the feature, its parts in declaration order, and their combined figures. */
+export interface FeatureStats {
+  feature: Feature;
+  parts: ProjectStats[];
+  packageCount: number;
+  totalDownloads: number;
+}
+
 export interface Showcase {
   flagship: ProjectStats[];
+  /** Features with at least one part, in {@link FEATURED} order. */
+  featured: FeatureStats[];
   infrastructure: ProjectStats[];
   libraries: ProjectStats[];
   /** Most downloaded, non-deprecated packages across the whole ecosystem. */
@@ -63,7 +73,12 @@ export function artFor(project: Project, packages: Package[]): ProjectArt {
 }
 
 /** Attaches live NuGet figures to every curated project. Projects keep their declaration order. */
-export function buildShowcase(packages: Package[], projects: Project[] = PROJECTS, topCount = 6): Showcase {
+export function buildShowcase(
+  packages: Package[],
+  projects: Project[] = PROJECTS,
+  topCount = 6,
+  features: Feature[] = FEATURED,
+): Showcase {
   const members = new Map<string, Package[]>(projects.map((p) => [p.slug, []]));
   for (const pkg of packages) {
     const project = projectFor(pkg.id, projects);
@@ -82,21 +97,32 @@ export function buildShowcase(packages: Package[], projects: Project[] = PROJECT
   });
   const inGroup = (group: Project['group']) => stats.filter((s) => s.project.group === group);
   const flagship = inGroup('flagship');
+  const featured = features
+    .map((feature) => {
+      const parts = inGroup('featured').filter((s) => s.project.feature === feature.slug);
+      return { feature, parts, packageCount: countPackages(parts), totalDownloads: sum(parts) };
+    })
+    .filter((f) => f.parts.length > 0);
 
   return {
     flagship,
+    featured,
     infrastructure: inGroup('infrastructure'),
     libraries: inGroup('libraries'),
     top: packages.filter((p) => !p.deprecation).sort(byDownloads).slice(0, topCount),
     packageCount: packages.length,
     totalDownloads: sum(packages),
-    flagshipPackageCount: flagship.reduce((n, s) => n + s.packages.length, 0),
-    flagshipDownloads: flagship.reduce((n, s) => n + s.totalDownloads, 0),
+    flagshipPackageCount: countPackages(flagship),
+    flagshipDownloads: sum(flagship),
   };
 }
 
-function sum(packages: Package[]): number {
-  return packages.reduce((total, p) => total + p.totalDownloads, 0);
+function sum(items: { totalDownloads: number }[]): number {
+  return items.reduce((total, p) => total + p.totalDownloads, 0);
+}
+
+function countPackages(parts: ProjectStats[]): number {
+  return parts.reduce((n, s) => n + s.packages.length, 0);
 }
 
 /** `1234` → `1.2k`, `190000` → `190k`, `1500000` → `1.5M`. */
@@ -119,6 +145,21 @@ export const pluralize = (count: number, noun: string): string => `${count} ${no
 
 /** The version a reader should install: latest stable if one exists, otherwise latest prerelease. */
 export const recommendedVersion = (pkg: Package): string => pkg.stableVersion ?? pkg.version;
+
+/** The package a card's install snippet shows: `id` from any part (case-insensitive), else the first part's lead. */
+export function installPackage(parts: ProjectStats[], id: string): Package | undefined {
+  const wanted = id.toLowerCase();
+  return parts.flatMap((s) => s.packages).find((p) => p.id.toLowerCase() === wanted) ?? parts[0]?.lead;
+}
+
+/** Footer links of a feature card: documentation, source, then all its packages on packages.bielu.pl. */
+export function featureLinks(feature: Feature, packageCount: number): { label: string; href: string }[] {
+  return [
+    { label: 'Documentation', href: feature.docs },
+    { label: 'Source', href: feature.repo },
+    { label: `All ${pluralize(packageCount, 'package')}`, href: ecosystemFamilyUrl(feature.slug) },
+  ];
+}
 
 /** `dotnet add package` command, pinning the version only when it is a prerelease. */
 export function installCommand(pkg: Package): string {
