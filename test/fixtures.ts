@@ -1,8 +1,9 @@
-import type { Package } from '../src/lib/nuget';
+import type { Package } from '../src/lib/package';
 import type { Feature, Project } from '../src/lib/projects';
 
 export function makePackage(overrides: Partial<Package> & { id: string }): Package {
   return {
+    registry: 'nuget',
     version: '1.0.0',
     stableVersion: '1.0.0',
     description: `${overrides.id} description. More text.`,

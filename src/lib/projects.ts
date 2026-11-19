@@ -1,5 +1,5 @@
 /**
- * Showcased projects — the hand-maintained layer on top of NuGet data. NuGet supplies package counts,
+ * Showcased projects — the hand-maintained layer on top of registry data. NuGet and npm supply package counts,
  * downloads and versions at build time; this file says which projects to feature and how.
  *
  * A package belongs to the project with the **longest** case-insensitive prefix matching its id, so a
@@ -109,6 +109,17 @@ export const PROJECTS: Project[] = [
     prefixes: ['Bielu.AspNetCore.AsyncApi.Scalar'],
     icon: 'scalar-consoles',
     hue: 160,
+    ...API_DESCRIPTIONS,
+  },
+  {
+    slug: 'scalar-plugins',
+    name: 'Scalar plugins',
+    group: 'flagship',
+    tag: 'npm',
+    summary: 'The SignalR, gRPC, broker and Arazzo plugins on npm, for any Scalar host, plus standalone browser bundles.',
+    prefixes: ['@bielu/scalar-'],
+    illustration: 'console',
+    hue: 125,
     ...API_DESCRIPTIONS,
   },
   {

@@ -17,7 +17,7 @@ import {
 
 const NAME = 'Arkadiusz Biel';
 const [showcase, avatar] = await Promise.all([getShowcase(), getAvatar()]);
-const { flagship, featured, top, packageCount, totalDownloads, flagshipPackageCount, flagshipDownloads } = showcase;
+const { flagship, featured, top, packageCount, registryCounts, totalDownloads, flagshipPackageCount, flagshipDownloads } = showcase;
 const core = flagship[0]!;
 const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, ...GROUPS[key], projects: showcase[key] }));
 ---
@@ -46,7 +46,8 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
     </div>
 
     <ul class="stats">
-      <li><b>{packageCount}</b><span>NuGet packages</span></li>
+      <li><b>{registryCounts.nuget}</b><span>NuGet packages</span></li>
+      {registryCounts.npm > 0 && <li><b>{registryCounts.npm}</b><span>npm packages</span></li>}
       <li><b>{formatHeadline(totalDownloads)}</b><span>downloads</span></li>
       <li><b>{UPSTREAM_PRS_MERGED}</b><span>upstream PRs merged</span></li>
     </ul>
@@ -63,6 +64,10 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
       <a href="https://www.nuget.org/profiles/bielu">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 1 4v8l7 4 7-4V4L8 0Zm0 2.3 5 2.86v5.68L8 13.7 3 10.84V5.16L8 2.3Z" /><circle cx="8" cy="8" r="2.4" /></svg>
         NuGet
+      </a>
+      <a href="https://www.npmjs.com/~bielu">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1 1h14v14H1V1Zm3 3v8h4V6.5h2V12h2V4H4Z" /></svg>
+        npm
       </a>
       <a href="https://www.linkedin.com/in/bielu">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 4.5a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8ZM.9 15.3h5.4V5.9H.9v9.4Zm8-9.4H8.1v9.4h5.4v-5.2c0-2.9-3.6-2.7-4.6-1.3V5.9Z" /></svg>
@@ -138,13 +143,13 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
 
   <section>
     <h2>Most downloaded</h2>
-    <p class="sub">The packages people install most, straight from NuGet.</p>
+    <p class="sub">The packages people install most, straight from NuGet and npm.</p>
     <ol class="top">
       {
         top.map((pkg, i) => (
           <li>
             <span class="rank mono">{i + 1}</span>
-            <a class="id mono" href={ecosystemPackageUrl(pkg.id)}>{pkg.id}</a>
+            <a class="id mono" href={ecosystemPackageUrl(pkg)}>{pkg.id}</a>
             <span class="downloads mono">{formatCount(pkg.totalDownloads)}</span>
           </li>
         ))
@@ -158,7 +163,7 @@ const groups = (['infrastructure', 'libraries'] as const).map((key) => ({ key, .
         <span class="eco-eyebrow">packages.bielu.pl</span>
         <strong>Browse the whole ecosystem</strong>
         <span>
-          All {packageCount} NuGet packages grouped by category, with install commands, versions and deprecation notes.
+          All {packageCount} NuGet and npm packages grouped by category, with install commands, versions and deprecation notes.
         </span>
       </span>
       <span class="eco-arrow" aria-hidden="true">→</span>

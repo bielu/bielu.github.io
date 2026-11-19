@@ -5,7 +5,7 @@ Guidance for AI coding agents working in this repository. See [README.md](./READ
 ## What this project is
 
 The Astro static site behind [bielu.pl](https://bielu.pl): a landing page that showcases the bielu .NET
-projects with live NuGet figures, collected at build time. It links into
+projects with live NuGet and npm figures, collected at build time. It links into
 [packages.bielu.pl](https://packages.bielu.pl) (repo `bielu/Bielu.EcoSystem`), which lists every package.
 This repo owns the design tokens that packages.bielu.pl mirrors; both repos share the same stack and rules.
 
@@ -13,7 +13,9 @@ This repo owns the design tokens that packages.bielu.pl mirrors; both repos shar
 
 | Path | Purpose |
 |------|---------|
+| `src/lib/package.ts` | The registry-neutral `Package` model (shared with packages.bielu.pl) |
 | `src/lib/nuget.ts` | NuGet search API client: fetch + normalise into `Package` (shared with packages.bielu.pl) |
+| `src/lib/npm.ts` | npm registry + downloads API client: fetch + normalise into `Package` (shared with packages.bielu.pl) |
 | `src/lib/projects.ts` | Showcased projects, flagship copy and upstream contributions, the only hand-maintained data |
 | `src/lib/project-icons.ts` | Names of the hand-drawn icons in `src/assets/project-icons/` (SVG, frame included) |
 | `src/lib/illustrations.ts` | Flat fallback illustrations for projects without an icon |
@@ -29,7 +31,7 @@ This repo owns the design tokens that packages.bielu.pl mirrors; both repos shar
 
 - **Keep logic in `src/lib`, keep pages thin.** Anything testable (matching, formatting, URLs) is a pure
   function in `src/lib` with tests. `.astro` files only render.
-- **Figures are never hand-written.** Package counts, downloads and versions come from NuGet at build time.
+- **Figures are never hand-written.** Package counts, downloads and versions come from NuGet and npm at build time.
   The only hand-kept figure is `UPSTREAM_PRS_MERGED`.
 - **Showcasing a project:** add it to `PROJECTS` in `projects.ts`. Reuse the packages.bielu.pl family slug
   so its links land on the right family. The longest matching prefix wins, so declaration order is only
@@ -40,18 +42,19 @@ This repo owns the design tokens that packages.bielu.pl mirrors; both repos shar
 - **Never publish the Gravatar email or its hash.** It is a short, guessable address, so its hash is as
   good as the address. Read it only from `GRAVATAR_EMAIL` at build time and keep the avatar inlined;
   don't link to gravatar.com or commit the address anywhere.
-- **Shared code with packages.bielu.pl:** `nuget.ts`, `illustrations.ts`, the icons and the tokens in
+- **Shared code with packages.bielu.pl:** `package.ts`, `nuget.ts`, `npm.ts`, `illustrations.ts`, the icons and the tokens in
   `global.css` are copies. Change them in both repos together.
 - **Design:** reuse the tokens in `global.css` and support light and dark themes. Layouts must work at
   phone width with no horizontal scroll.
 - **Formatting:** follow [`.editorconfig`](./.editorconfig) (2 spaces, LF, final newline).
 - **Tests:** Vitest, using `Method_Scenario_ExpectedResult` names and Arrange / Act / Assert comments.
-  No network calls in tests; pass a fake `fetch` to `fetchPackages`.
+  No network calls in tests; pass a fake `fetch` to `fetchNugetPackages` / `fetchNpmPackages`.
 
 ## Engineering principles
 
 - **SOLID:** single-purpose modules (fetching, curation and matching stay separate), and dependencies are
-  injected where it matters (`fetchPackages(fetchImpl)`, `buildShowcase(packages, projects)`).
+  injected where it matters (`fetchNugetPackages(fetchImpl)`, `fetchNpmPackages(fetchImpl, now)`,
+  `buildShowcase(packages, projects)`).
 - **DRY:** shared styling lives in `global.css` and shared logic in `showcase.ts`. Don't duplicate either
   in pages.
 - **KISS:** use static output and a few lines of vanilla JS for interactivity. No UI framework or extra
