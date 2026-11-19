@@ -1,9 +1,9 @@
 import type { IllustrationName } from './illustrations';
-import type { Package } from './nuget';
+import type { Package, Registry } from './package';
 import type { ProjectIconName } from './project-icons';
 import { FEATURED, PROJECTS, type Feature, type Project } from './projects';
 
-/** The bielu NuGet ecosystem catalogue (repo bielu/Bielu.EcoSystem). */
+/** The bielu package catalogue, NuGet and npm (repo bielu/Bielu.EcoSystem). */
 export const ECOSYSTEM_URL = 'https://packages.bielu.pl';
 
 /** What a project tile shows: a hand-drawn icon, the curated illustration, or a package's own NuGet icon. */
@@ -39,6 +39,8 @@ export interface Showcase {
   /** Most downloaded, non-deprecated packages across the whole ecosystem. */
   top: Package[];
   packageCount: number;
+  /** Package count per registry. */
+  registryCounts: Record<Registry, number>;
   totalDownloads: number;
   /** Packages in the flagship projects combined. */
   flagshipPackageCount: number;
@@ -72,7 +74,7 @@ export function artFor(project: Project, packages: Package[]): ProjectArt {
   return icon ? { kind: 'image', src: icon } : { kind: 'illustration', name: 'package' };
 }
 
-/** Attaches live NuGet figures to every curated project. Projects keep their declaration order. */
+/** Attaches live NuGet and npm figures to every curated project. Projects keep their declaration order. */
 export function buildShowcase(
   packages: Package[],
   projects: Project[] = PROJECTS,
@@ -104,6 +106,9 @@ export function buildShowcase(
     })
     .filter((f) => f.parts.length > 0);
 
+  const registryCounts: Record<Registry, number> = { nuget: 0, npm: 0 };
+  for (const pkg of packages) registryCounts[pkg.registry]++;
+
   return {
     flagship,
     featured,
@@ -111,6 +116,7 @@ export function buildShowcase(
     libraries: inGroup('libraries'),
     top: packages.filter((p) => !p.deprecation).sort(byDownloads).slice(0, topCount),
     packageCount: packages.length,
+    registryCounts,
     totalDownloads: sum(packages),
     flagshipPackageCount: countPackages(flagship),
     flagshipDownloads: sum(flagship),
@@ -161,16 +167,22 @@ export function featureLinks(feature: Feature, packageCount: number): { label: s
   ];
 }
 
-/** `dotnet add package` command, pinning the version only when it is a prerelease. */
+/** `dotnet add package` or `npm install` command, pinning the version only when it is a prerelease. */
 export function installCommand(pkg: Package): string {
   const version = recommendedVersion(pkg);
-  return `dotnet add package ${pkg.id}${version.includes('-') ? ` --version ${version}` : ''}`;
+  const prerelease = version.includes('-');
+  if (pkg.registry === 'npm') return `npm install ${pkg.id}${prerelease ? `@${version}` : ''}`;
+  return `dotnet add package ${pkg.id}${prerelease ? ` --version ${version}` : ''}`;
 }
 
 /** A project's family on packages.bielu.pl. */
 export const ecosystemFamilyUrl = (slug: string): string => `${ECOSYSTEM_URL}/#${slug}`;
 
-/** A package's page on packages.bielu.pl. NuGet ids are case-insensitive, so slugs are lowercase. */
-export const ecosystemPackageUrl = (id: string): string => `${ECOSYSTEM_URL}/packages/${id.toLowerCase()}/`;
+/**
+ * A package's page on packages.bielu.pl. NuGet ids are case-insensitive, so they are lowercased; npm
+ * packages live under `npm/` with the scope's `@` dropped. Mirrors `packagePath` in bielu/Bielu.EcoSystem.
+ */
+export const ecosystemPackageUrl = (pkg: Pick<Package, 'id' | 'registry'>): string =>
+  `${ECOSYSTEM_URL}/packages/${pkg.registry === 'npm' ? `npm/${pkg.id.replace(/^@/, '')}` : pkg.id.toLowerCase()}/`;
 
 export const githubUrl = (repo: string): string => `https://github.com/${repo}`;

@@ -1,13 +1,16 @@
 import { fetchAvatar } from './gravatar';
-import { fetchPackages } from './nuget';
+import { fetchNpmPackages } from './npm';
+import { fetchNugetPackages } from './nuget';
 import { buildShowcase, type Showcase } from './showcase';
 
 let showcase: Promise<Showcase> | undefined;
 let avatar: Promise<string | undefined> | undefined;
 
-/** Build-time showcase, fetched from NuGet once per build. */
+/** Build-time showcase, fetched from NuGet and npm once per build. */
 export function getShowcase(): Promise<Showcase> {
-  showcase ??= fetchPackages().then((packages) => buildShowcase(packages));
+  showcase ??= Promise.all([fetchNugetPackages(), fetchNpmPackages()]).then(([nuget, npm]) =>
+    buildShowcase([...nuget, ...npm]),
+  );
   return showcase;
 }
 

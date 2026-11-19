@@ -1,14 +1,15 @@
 # bielu.github.io
 
 Source for [bielu.pl](https://bielu.pl), the personal landing page of Arkadiusz Biel. It showcases the projects
-of the bielu .NET ecosystem with live NuGet figures and links into the full catalogue at
+of the bielu .NET ecosystem with live NuGet and npm figures and links into the full catalogue at
 [packages.bielu.pl](https://packages.bielu.pl) ([bielu/Bielu.EcoSystem](https://github.com/bielu/Bielu.EcoSystem)).
 Built with [Astro](https://astro.build) and served by GitHub Pages behind Cloudflare.
 
 ## How it works
 
 - **Collection.** At build time the site queries the NuGet search API for every package owned by `bielu`
-  (`src/lib/nuget.ts`, the same client packages.bielu.pl uses). Nothing is committed: a nightly scheduled
+  and the npm registry for every package maintained by `bielu` (`src/lib/nuget.ts` and `src/lib/npm.ts`, the
+  same clients packages.bielu.pl uses). Nothing is committed: a nightly scheduled
   build keeps package counts, downloads and versions current.
 - **Showcase.** `src/lib/projects.ts` lists the featured projects. A package belongs to the project with the
   **longest** matching id prefix (`src/lib/showcase.ts`), which supplies each tile's package count,

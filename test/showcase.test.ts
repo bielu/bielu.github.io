@@ -149,6 +149,7 @@ describe('buildShowcase', () => {
 
     // Assert
     expect(showcase.packageCount).toBe(6);
+    expect(showcase.registryCounts).toEqual({ nuget: 6, npm: 0 });
     expect(showcase.totalDownloads).toBe(1970);
     expect(showcase.flagshipPackageCount).toBe(3);
     expect(showcase.flagshipDownloads).toBe(450);
@@ -261,12 +262,36 @@ describe('formatting', () => {
       'dotnet add package A --version 2.0.0-beta',
     );
   });
+
+  it('installCommand_NpmUsesNpmInstall', () => {
+    expect(installCommand(makePackage({ id: '@acme/ui', registry: 'npm' }))).toBe('npm install @acme/ui');
+    expect(installCommand(makePackage({ id: '@acme/ui', registry: 'npm', version: '2.0.0-beta', stableVersion: undefined }))).toBe(
+      'npm install @acme/ui@2.0.0-beta',
+    );
+  });
+
+  it('buildShowcase_CountsPackagesPerRegistry', () => {
+    // Arrange
+    const mixed = [makePackage({ id: 'Acme.Core' }), makePackage({ id: '@acme/core-ui', registry: 'npm' })];
+
+    // Act
+    const showcase = buildShowcase(mixed, projects);
+
+    // Assert
+    expect(showcase.registryCounts).toEqual({ nuget: 1, npm: 1 });
+    expect(showcase.packageCount).toBe(2);
+  });
 });
 
 describe('urls', () => {
   it('ecosystemUrls_PointAtPackagesBieluPl', () => {
     expect(ecosystemFamilyUrl('asyncapi')).toBe('https://packages.bielu.pl/#asyncapi');
-    expect(ecosystemPackageUrl('Bielu.PersistentQueues')).toBe('https://packages.bielu.pl/packages/bielu.persistentqueues/');
+    expect(ecosystemPackageUrl(makePackage({ id: 'Bielu.PersistentQueues' }))).toBe(
+      'https://packages.bielu.pl/packages/bielu.persistentqueues/',
+    );
+    expect(ecosystemPackageUrl(makePackage({ id: '@bielu/scalar-grpc', registry: 'npm' }))).toBe(
+      'https://packages.bielu.pl/packages/npm/bielu/scalar-grpc/',
+    );
     expect(githubUrl('scalar/scalar')).toBe('https://github.com/scalar/scalar');
   });
 });
